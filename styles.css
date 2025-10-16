@@ -193,3 +193,13 @@ header h1 {
     /* 確保 stroke 也沒有顏色，以免邊框干擾 */
     stroke: none !important; 
 }
+
+/* 確保 room-number-text 在 SVG 中顯示清晰 */
+.room-number-text {
+    font-family: Arial, sans-serif;
+    font-size: 14px; /* 這裡的尺寸要非常小，因為您的 SVG 座標系很小 */
+    fill: #ffffff; /* 文字顏色 */
+    font-weight: bold;
+    pointer-events: none; /* 確保點擊事件會穿透文字，點擊到下方的 room-shape */
+}
+/* ... (保留所有現有的 CSS) ... */

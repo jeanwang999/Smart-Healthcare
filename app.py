@@ -6,16 +6,15 @@ from joblib import load
 import json
 import random
 import os
-from streamlit.components.v1 import html
+from streamlit.components.v1 import html 
 
 # --- 配置 ---
 MODEL_PATH = "." # 假設模型檔案都在當前目錄
 DATA_FILE = 'current_ward_full_data.csv'
-# 確保這些係數與您最終測試出的最佳視覺化效果一致
-SCALING_FACTOR_H6 = 0.25 
-SCALING_FACTOR_H24 = 0.50
+SCALING_FACTOR_H6 = 0.55 
+SCALING_FACTOR_H24 = 0.7
 
-# --- 核心風險轉換函式 (從 prediction_to_json.py 搬過來) ---
+# --- 核心風險轉換函式 ---
 
 def probability_to_risk_level(prob):
     # 使用您最終確定的閾值
@@ -30,13 +29,18 @@ def probability_to_risk_level(prob):
     else:
         return 5
 
-@st.cache_data
+@st.cache_resource # 使用 resource 緩存模型物件
+
 def load_models_and_data():
     """載入模型和即時輸入數據"""
-    lgbm_h6 = load(os.path.join(MODEL_PATH, 'lgbm_model_h6.joblib'))
-    lgbm_h24 = load(os.path.join(MODEL_PATH, 'lgbm_model_h24.joblib'))
-    df_full = pd.read_csv(DATA_FILE) 
-    return lgbm_h6, lgbm_h24, df_full
+    try:
+        lgbm_h6 = load(os.path.join(MODEL_PATH, 'lgbm_model_h6.joblib'))
+        lgbm_h24 = load(os.path.join(MODEL_PATH, 'lgbm_model_h24.joblib'))
+        df_full = pd.read_csv(DATA_FILE) 
+        return lgbm_h6, lgbm_h24, df_full
+    except Exception as e:
+        st.error(f"載入模型或數據失敗：{e}")
+        st.stop() 
 
 def generate_predictions(lgbm_h6, lgbm_h24, df_full):
     """執行預測並生成 JSON 數據"""
@@ -67,7 +71,7 @@ def generate_predictions(lgbm_h6, lgbm_h24, df_full):
         
         # 模擬 SHAP 解釋 (簡化)
         explanation_h6 = []
-        if details['spo2_min'] < 95: # 降低閾值以增加解釋
+        if details['spo2_min'] < 95: 
             explanation_h6.append({"feature": "血氧偏低", "impact": f"+{round(scaled_prob_h6 * 0.3, 3)}", "trend": "低於 95%"})
         if details['hr_avg'] > 95:
              explanation_h6.append({"feature": "心率偏高", "impact": f"+{round(scaled_prob_h6 * 0.2, 3)}", "trend": "平均心率 > 95"})
@@ -93,56 +97,101 @@ def generate_predictions(lgbm_h6, lgbm_h24, df_full):
             "manualOverride": None
         }
         
-    return json.dumps(patient_data_json) # 返回 JSON 字串
+    # 重要：返回一個完整的 JSON 字串
+    return json.dumps(patient_data_json) 
 
 # --- Streamlit 儀表板呈現 ---
 
-st.set_page_config(layout="wide")
+st.set_page_config(page_title="智慧病房風險監測系統", layout="wide")
 st.title("🏥 智慧病房風險監測系統 (LightGBM)")
 
 # 載入模型和數據
 lgbm_h6, lgbm_h24, df_full = load_models_and_data()
 
-# 生成最新的預測 JSON
+# 生成最新的預測 JSON (確保執行)
 json_data_str = generate_predictions(lgbm_h6, lgbm_h24, df_full)
 
-# 讀取前端文件
-with open("index.html", "r", encoding="utf-8") as f:
-    html_content = f.read()
-    
-with open("styles.css", "r", encoding="utf-8") as f:
-    css_content = f.read()
 
-# ⚠️ 注入數據和 CSS
-# 將 JSON 數據和 CSS 樣式動態注入到 HTML 內容中
-# 假設您的 index.html/app.js 結構允許您注入 <script> 或 <style> 標籤
-final_html = f"""
-<style>{css_content}</style>
-{html_content}
+# --- 讀取所有前端文件 (安全讀取，避免 f-string 解析問題) ---
+try:
+    with open("index.html", "r", encoding="utf-8") as f:
+        html_content = f.read()
+    
+    with open("styles.css", "r", encoding="utf-8") as f:
+        css_content = f.read()
+        
+    with open("app.js", "r", encoding="utf-8") as f: 
+        js_content = f.read() # 讀取原始 JS 內容 (含註解)
+
+except FileNotFoundError as e:
+    st.error(f"找不到必要的前端檔案：{e.filename}。請確認 {e.filename} 是否在 app.py 相同的目錄中。")
+    st.stop()
+
+
+# --- 處理 HTML/CSS/JS 整合 ---
+
+# 1. 處理 CSS 內嵌 (使用 <style> 標籤)
+
+css_optimization = """
+/* CSS 優化：減少 Streamlit Custom HTML 頂部不必要的空白 */
+
+#floor-map svg{
+    margin-top: -500px !important;
+}
+
+#dashboard-container { /* 假設 index.html 內有個主要容器 ID 為 #dashboard-container */
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+"""
+
+inline_css_tag = f"<style>\n{css_content}\n{css_optimization}\n</style>"
+
+integrated_html = html_content.replace(
+    '<link rel="stylesheet" href="styles.css">', 
+    inline_css_tag
+)
+
+# 2. 準備 JS 注入區塊
+# ⚠️ 確保 JSON 字串安全：轉義單引號，這樣 JSON.parse 才能在 JS 中正確執行
+safe_json_str = json_data_str.replace("'", "\\'").replace("\n", "") 
+
+script_injection = f"""
 <script>
-    // 注入動態生成的 patientData
-    const patientData = JSON.parse('{json_data_str}');
-    
-    // 確保 app.js 中的 renderMap 可以在這裡被呼叫
-    // 如果 app.js 裡的邏輯是封裝在 DOMContentLoaded 裡，需要確保它能執行
-    // 這裡只是演示注入，實際運行可能需要將 app.js 邏輯也整合到 <script> 標籤中
-    
-    // 理想情況下，app.js 邏輯應該緊跟在 patientData 定義之後
-    // 您需要將 app.js 的內容複製貼到這裡的 <script> 標籤內
-    // 為了簡潔，這裡只演示數據注入
-    
-    // === 這裡應該放置您的 app.js 內容，並確保它使用了上面的 patientData 變數 ===
-    // 為了演示，假設您的 app.js 邏輯已經被手動合併或外部引入
-    // ...
+    // 1. 注入動態生成的 patientData
+    const patientDataRaw = '{safe_json_str}'; 
+    try {{
+        const patientData = JSON.parse(patientDataRaw);
+        
+        // 2. 將 app.js 的邏輯放在這裡，因為它是從檔案讀取，所以安全地包含註解
+        {js_content}
+        
+    }} catch(e) {{
+        console.error("JSON 解析錯誤，無法啟動儀表板渲染:", e);
+        console.log("Raw JSON:", patientDataRaw.substring(0, 200) + "...");
+    }}
 </script>
 """
 
+# 3. 將 JS 注入到 HTML 內容的 </body> 標籤結束之前
+final_html = integrated_html.replace(
+    '</body>',
+    script_injection + '</body>'
+)
+
+# 如果 index.html 不包含 <body> 標籤，我們使用簡單連接
+if '</body>' not in final_html:
+    final_html += script_injection
+
+
 # 使用 Streamlit 組件渲染完整的 HTML/CSS/JS 儀表板
-html(final_html, height=800, scrolling=True)
+html(final_html, height=1200, scrolling=True)
 
 # 顯示模型資訊和調試
 st.sidebar.header("模型資訊")
-st.sidebar.code(f"H6 AUC: (需要重新計算)") # 建議在這裡顯示模型訓練時的 AUC
-st.sidebar.code(f"H24 AUC: (需要重新計算)")
+st.sidebar.code(f"H6 Model Loaded: {lgbm_h6.__class__.__name__}")
+st.sidebar.code(f"H24 Model Loaded: {lgbm_h24.__class__.__name__}")
 st.sidebar.markdown(f"**H6 縮放係數:** {SCALING_FACTOR_H6}")
 st.sidebar.markdown(f"**H24 縮放係數:** {SCALING_FACTOR_H24}")
+st.sidebar.markdown("---")
+st.sidebar.text("診斷：檢查前端檔案 (HTML/CSS/JS) 是否已在專案根目錄中。")
