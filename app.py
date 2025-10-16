@@ -103,7 +103,7 @@ def generate_predictions(lgbm_h6, lgbm_h24, df_full):
 # --- Streamlit 儀表板呈現 ---
 
 st.set_page_config(page_title="智慧病房風險監測系統", layout="wide")
-st.title("🏥 智慧病房風險監測系統 (LightGBM)")
+st.title("◆ 智慧病房風險監測系統 (LightGBM)")
 
 # 載入模型和數據
 lgbm_h6, lgbm_h24, df_full = load_models_and_data()
@@ -135,14 +135,6 @@ except FileNotFoundError as e:
 css_optimization = """
 /* CSS 優化：減少 Streamlit Custom HTML 頂部不必要的空白 */
 
-#floor-map svg{
-    margin-top: -500px !important;
-}
-
-#dashboard-container { /* 假設 index.html 內有個主要容器 ID 為 #dashboard-container */
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-}
 """
 
 inline_css_tag = f"<style>\n{css_content}\n{css_optimization}\n</style>"
@@ -185,13 +177,13 @@ if '</body>' not in final_html:
 
 
 # 使用 Streamlit 組件渲染完整的 HTML/CSS/JS 儀表板
-html(final_html, height=1200, scrolling=True)
+html(final_html, height=800, scrolling=True)
 
-# 顯示模型資訊和調試
-st.sidebar.header("模型資訊")
-st.sidebar.code(f"H6 Model Loaded: {lgbm_h6.__class__.__name__}")
-st.sidebar.code(f"H24 Model Loaded: {lgbm_h24.__class__.__name__}")
-st.sidebar.markdown(f"**H6 縮放係數:** {SCALING_FACTOR_H6}")
-st.sidebar.markdown(f"**H24 縮放係數:** {SCALING_FACTOR_H24}")
-st.sidebar.markdown("---")
-st.sidebar.text("診斷：檢查前端檔案 (HTML/CSS/JS) 是否已在專案根目錄中。")
+# 顯示模型資訊和調試 (移至主頁面底部)
+st.markdown("---") # 增加分隔線以區分主要內容和資訊
+st.header("模型資訊")
+st.code(f"H6 Model Loaded: {lgbm_h6.__class__.__name__}")
+st.code(f"H24 Model Loaded: {lgbm_h24.__class__.__name__}")
+st.markdown(f"**H6 縮放係數:** {SCALING_FACTOR_H6}")
+st.markdown(f"**H24 縮放係數:** {SCALING_FACTOR_H24}")
+st.text("診斷：檢查前端檔案 (HTML/CSS/JS) 是否已在專案根目錄中。")
