@@ -1,0 +1,195 @@
+/* --- 全域設定 --- */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    background-color: #f0f3f8; /* 淺灰色背景 */
+    color: #333;
+}
+
+/* --- 標頭與時間選擇 --- */
+header {
+    background-color: #007bff; /* 藍色主色調 */
+    color: white;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+header h1 {
+    margin: 0;
+    font-size: 24px;
+}
+
+#time-selector button {
+    padding: 10px 18px;
+    margin-left: 10px;
+    border: 2px solid white;
+    cursor: pointer;
+    background-color: transparent;
+    color: white;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+#time-selector button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+#time-selector button.active {
+    background-color: white;
+    color: #007bff;
+    font-weight: bold;
+    border-color: #007bff;
+}
+
+/* --- 主要內容佈局 --- */
+#main-content {
+    display: flex;
+    padding: 20px;
+    gap: 20px; /* 控制左右區塊間距 */
+    height: calc(100vh - 80px); /* 讓內容佔滿剩餘視窗高度 */
+    min-width: 1000px;
+}
+
+#floor-map {
+    flex: 3; /* 佔據較大空間，用於樓層圖 */
+    background-color: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; /* 確保 SVG 不會溢出 */
+}
+
+#detail-panel {
+    flex: 1.5; /* 佔據較小空間，用於資訊面板 */
+    min-width: 350px;
+    background-color: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+#detail-panel h2 {
+    color: #007bff;
+    border-bottom: 2px solid #f0f3f8;
+    padding-bottom: 10px;
+    margin-top: 0;
+}
+
+#patient-info hr {
+    border: 0;
+    border-top: 1px solid #eee;
+    margin: 15px 0;
+}
+
+.utility-area path[id^="Vector"] {
+    fill: #eee; /* 淺灰色 */
+    stroke: #ccc; /* 邊框顏色 */
+    stroke-width: 1px;
+}
+
+
+/* --- SVG 互動樣式 (應用到 <g id="RoomXXX"> 群組) --- */
+
+/* 通用病房樣式，透過 JS 賦予到 <g> 元素上 */
+.room-shape {
+    cursor: pointer;
+    /* 確保所有子路徑/形狀的 fill 顏色都是 'currentColor' */
+    /* 這樣當我們改變 <g> 的 fill 時，裡面的元素也會跟著變 */
+    fill: currentColor; 
+    transition: fill 0.4s ease; /* 平滑過渡效果 */
+}
+.room-shape path{
+    stroke: #ccc;
+
+}
+
+/* 當滑鼠移過病房時的視覺反饋 */
+.room-shape:hover {
+    opacity: 0.85; 
+    transform: scale(1.005);
+}
+
+/* ⚠️ 注意: 這裡的顏色會被應用到 <g> 元素上，
+       因此 SVG 內部形狀的 fill 屬性最好移除或設定為繼承。
+       我們會在 JS 中確保顏色的覆蓋。
+*/
+
+/* --- 風險等級顏色定義 --- */
+/* 等級 1: 綠色 (安全/極低) - 成功率高，低風險 */
+.risk-level-1 { fill: #b7edb9; } 
+.risk-level-1 path, .risk-level-1 rect { fill: inherit; } 
+
+/* 等級 2: 黃綠色 (低) - 需持續監測 */
+.risk-level-2 { fill: #4fc8c4; } 
+.risk-level-2 path, .risk-level-2 rect { fill: inherit; }
+
+/* 等級 3: 橘色 (中) - 預警，需注意 */
+.risk-level-3 { fill: #f3eb0d; } 
+.risk-level-3 path, .risk-level-3 rect { fill: inherit; }
+
+/* 等級 4: 橘紅色 (高) - 需準備介入 */
+.risk-level-4 { fill: #fd9712; } 
+.risk-level-4 path, .risk-level-4 rect { fill: inherit; }
+
+/* 等級 5: 紅色 (危急/極高) - 需緊急介入 */
+.risk-level-5 { fill: #e14439; } 
+.risk-level-5 path, .risk-level-5 rect { fill: inherit; }
+
+/* 醫師手動調整的風險標示 */
+.risk-manual { 
+    fill: #9C27B0; /* 紫色 */
+    box-shadow: 0 0 10px rgba(156, 39, 176, 0.5); /* 增加一個明顯的陰影 */
+}
+.risk-manual path, .risk-manual rect { fill: inherit; }
+
+/* --- 詳細資訊面板的按鈕樣式 --- */
+#detail-panel button {
+    background-color: #28a745; /* 綠色，代表決策行動 */
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background-color 0.2s;
+}
+
+#detail-panel button:hover {
+    background-color: #218838;
+}
+
+/* 確保詳細資訊面板中的風險文字顏色正確 */
+#patient-info span[class^="risk-level-"], #patient-info span.risk-manual {
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: white; /* 讓文字在色塊上清晰可見 */
+}
+/* 由於 <g> 元素的 fill 無法直接繼承到 text/span，這裡為文字元素設置背景色 */
+#patient-info .risk-level-1 { background-color: #b7edb9; }
+#patient-info .risk-level-2 { background-color: #4fc8c4; color: #333;} /* 淺色背景文字用深色 */
+#patient-info .risk-level-3 { background-color: #f3eb0d; }
+#patient-info .risk-level-4 { background-color: #fd9712; }
+#patient-info .risk-level-5 { background-color: #e14439; }
+#patient-info .risk-manual { background-color: #9C27B0; }
+
+
+
+
+/* ============================================== */
+/* 修正：確保病房號碼文字可見 (最高優先級) */
+
+/* 鎖定所有在 <g class="room-shape"> 內的，ID 以數字開頭的 path */
+/* 由於 Figma 導出的文字常是 path，我們使用高優先級選取器確保文字為黑色 */
+.room-shape path[id^="6"] {
+    fill: black !important; /* 強制文字填色為黑色 */
+    /* 確保 stroke 也沒有顏色，以免邊框干擾 */
+    stroke: none !important; 
+}
