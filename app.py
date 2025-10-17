@@ -177,7 +177,7 @@ if '</body>' not in final_html:
 
 
 # 使用 Streamlit 組件渲染完整的 HTML/CSS/JS 儀表板
-html(final_html, height=800, scrolling=True)
+html(final_html, height=720, scrolling=True)
 
 # 顯示模型資訊和調試 (移至主頁面底部)
 st.markdown("---") # 增加分隔線以區分主要內容和資訊

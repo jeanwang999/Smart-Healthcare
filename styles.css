@@ -50,7 +50,8 @@ header h1 {
     display: flex;
     padding: 20px;
     gap: 20px; /* 控制左右區塊間距 */
-    height: calc(100vh - 80px); /* 讓內容佔滿剩餘視窗高度 */
+    /* height: calc(100vh - 80px);  */
+    height: 600px;
     min-width: 1000px;
 }
 
